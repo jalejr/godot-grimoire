@@ -2,3 +2,18 @@
 	path = godot-cpp
 	url = https://github.com/godotengine/godot-cpp.git
 	branch = 4.3
+[submodule "tag-system-src"]
+	path = tag-system-src
+	url = https://github.com/jalejr/tag-system-src
+[submodule "attribute-system-src"]
+	path = attribute-system-src
+	url = https://github.com/jalejr/attribute-system-src
+[submodule "event-system-src"]
+	path = event-system-src
+	url = https://github.com/jalejr/event-system-src
+[submodule "effect-system-src"]
+	path = effect-system-src
+	url = https://github.com/jalejr/effect-system-src
+[submodule "ability-system-src"]
+	path = ability-system-src
+	url = https://github.com/jalejr/ability-system-src
