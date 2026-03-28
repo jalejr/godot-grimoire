@@ -1,0 +1,9 @@
+[gd_resource type="AbilityDefinition" format=3 uid="uid://cy0q5o12i73cv"]
+
+[ext_resource type="Script" uid="uid://dq8hav40eb1xs" path="res://addons/grimoire/example/new_ability_test.gd" id="1_ua4ec"]
+
+[resource]
+ability_tag = &"Ability.Attack.Melee"
+logic_script = ExtResource("1_ua4ec")
+granted_tags = Array[StringName]([&"Ability.Attack.Range", &"Test.1", &"Test.2", &"Test.3", &"Test.4"])
+trigger_tags = Array[StringName]([&"Status.Buff.Strength"])
