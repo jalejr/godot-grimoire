@@ -75,14 +75,14 @@ jobs:
         if: ${{ matrix.target.platform == 'windows' }}
         shell: pwsh
         run: |
-          Remove-Item project/addons/attribute_system/bin/* -Include *.exp,*.lib,*.pdb -Force
+          Remove-Item project/addons/grimoire/bin/* -Include *.exp,*.lib,*.pdb -Force
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: attribute_system-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
+          name: grimoire-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
           path: |
-            ${{ github.workspace }}/project/addons/attribute_system/bin/**
+            ${{ github.workspace }}/project/addons/grimoire/bin/**
 
   merge:
     runs-on: ubuntu-22.04
@@ -91,8 +91,8 @@ jobs:
       - name: Merge Artifacts
         uses: actions/upload-artifact/merge@v4
         with:
-          name: attribute_system_bins
-          pattern: attribute_system-*
+          name: grimoire_bins
+          pattern: grimoire-*
           delete-merged: true
 
   release:
@@ -109,8 +109,8 @@ jobs:
       - name: Download merged bins
         uses: actions/download-artifact@v4
         with:
-          name: attribute_system_bins
-          path: project/addons/attribute_system/bin/
+          name: grimoire_bins
+          path: project/addons/grimoire/bin/
 
       - name: Create addon zip
         run: |
@@ -120,12 +120,12 @@ jobs:
       - name: Upload addon zip as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: attribute_system_addon
-          path: attribute_system_addon.zip
+          name: grimoire_addon
+          path: grimoire_addon.zip
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: attribute_system_addon.zip
+          files: grimoire_addon.zip
           generate_release_notes: true
