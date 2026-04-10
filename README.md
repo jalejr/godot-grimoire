@@ -1,56 +1,109 @@
-# godot-cpp template
-This repository serves as a quickstart template for GDExtension development with Godot 4.0+.
+# Grimoire
+A GAS-inspired gameplay systems plugin for Godot 4, built with GDExtension in C++.
+ 
+Grimoire brings the core ideas behind Unreal Engine's Gameplay Ability System to Godot — structured ability activation, tag-driven state management, attribute modifiers, and event-based effect application
+ 
+> ⚠️ **VERY WIP** — Grimoire is actively developed and APIs may change between releases. It is usable but not yet production hardened. Feedback and bug reports are welcome.
 
-## Contents
-* Preconfigured source files for C++ development of the GDExtension ([src/](./src/))
-* An empty Godot project in [project/](./project), to test the GDExtension
-* godot-cpp as a submodule (`godot-cpp/`)
-* GitHub Issues template ([.github/ISSUE_TEMPLATE.yml](./.github/ISSUE_TEMPLATE.yml))
-* GitHub CI/CD workflows to publish your library packages when creating a release ([.github/workflows/builds.yml](./.github/workflows/builds.yml))
-* An SConstruct file with various functions, such as boilerplate for [Adding documentation](https://docs.godotengine.org/en/stable/tutorials/scripting/cpp/gdextension_docs_system.html)
-
-## Usage - Template
-
-To use this template, log in to GitHub and click the green "Use this template" button at the top of the repository page. This will let you create a copy of this repository with a clean git history.
-
-To get started with your new GDExtension, do the following:
-
-* clone your repository to your local computer
-* initialize the godot-cpp git submodule via `git submodule update --init`
-* change the name of the compiled library file inside the [SConstruct](./SConstruct) file by modifying the `libname` string.
-  * change the paths of the to be loaded library name inside the [project/bin/example.gdextension](./project/bin/example.gdextension) file, by replacing `EXTENSION-NAME` with the name you chose for `libname`.
-* change the `entry_symbol` string inside [project/bin/example.gdextension](./project/bin/example.gdextension) file.
-  * rename the `example_library_init` function in [src/register_types.cpp](./src/register_types.cpp) to the same name you chose for `entry_symbol`.
-* change the name of the `project/bin/example.gdextension` file
-
-Now, you can build the project with the following command:
-
-```shell
-scons
+---
+ 
+## Installation
+ 
+1. Download the latest release zip
+2. Extract into your Godot project — you should get:
+```
+addons/
+    tag_system/
+    grimoire/
+```
+3. Enable tag plugin in **Project Settings → Plugins**
+4. Reload the project
+5. If you see a Tags tab at the top then you're good to go
+ 
+---
+ 
+## Quick Example
+ 
+Define a tag and give an entity a TagContainer:
+ 
+```gdscript
+# Tags are accessed through the generated Tag constants
+var container: TagContainer = $TagContainer
+container.add_tag(Tag.STATUS_BUFF_STRENGTH)
+ 
+# Hierarchical queries — has any Status tag?
+print(container.has_tag(Tag.STATUS))           # true
+print(container.has_tag(Tag.STATUS, true))     # false (exact match)
+ 
+# Watch for tag changes
+container.watch_tag(Tag.STATUS, _on_status_changed)
+ 
+func _on_status_changed(tag: StringName, count: int) -> void:
+    print("%s count is now %d" % [tag, count])
+```
+	
+Activate an ability:
+ 
+```gdscript
+var ability_system: AbilitySystem = $AbilitySystem
+ability_system.try_activate(Tag.ABILITY_ATTACK_MELEE)
+```
+ 
+Apply an effect:
+ 
+```gdscript
+var effect_system: EffectSystem = $EffectSystem
+effect_system.apply_effect(poison_effect_definition, source_entity)
+```
+ 
+---
+	
+## Architecture
+ 
+Grimoire follows the same structural ideas as GAS but is designed for GDScript-first workflows. The heavy lifting is in C++ for performance and the user-facing API is in GDScript virtual methods.
+ 
+Each system is a `Node` you attach to your entity. A typical entity scene looks like:
+ 
+```
+CharacterBody2D / Node3D / etc.
+├── TagContainer
+├── AttributeSystem
+├── EventSystem
+├── EffectSystem
+└── AbilitySystem
 ```
 
-If the build command worked, you can test it with the [project](./project) project. Import it into Godot, open it, and launch the main scene. You should see it print the following line in the console:
+At its core Grimoire is five systems that work together:
+ 
+- **TagSystem** — A hierarchical tag registry. Tags like `Ability.Attack.Melee` and `Status.Debuff.Poison` are registered once and used everywhere. Any node can carry a `TagContainer` and watch for tag changes reactively.
+- **AttributeSystem** — Define stats like health, stamina, and speed as `AttributeDefinition` resources. Modifiers stack cleanly with flat add, multiply, and override operations. Constraints enforce min/max boundaries.
+- **EventSystem** — An entity-scoped signal bus keyed by tags. Emit `Event.Combat.Hit` and any watcher of `Event.Combat` or `Event` is also notified. No hardcoded signal names.
+- **EffectSystem** — Apply instant, duration, and periodic effects to entities through a shared EffectContext. Effects execute any number of EffectModifier resources — what those modifiers do is entirely up to you. Attribute changes, tag grants, event emissions, or custom game logic are all valid implementations.
+- **AbilitySystem** — Define abilities as resources with activation requirements, costs, and state machines. Abilities activate from input or trigger automatically when tags appear. GDScript handles the logic via virtual methods.
+ 
+---
 
-```
-Type: 24
-```
+Systems communicate through the tag layer rather than direct references. Effects grant tags, abilities watch for tags, the event system fires tag-keyed signals. This keeps systems decoupled and makes behavior composable.
 
-### Configuring an IDE
-You can develop your own extension with any text editor and by invoking scons on the command line, but if you want to work with an IDE (Integrated Development Environment), you can use a compilation database file called `compile_commands.json`. Most IDEs should automatically identify this file, and self-configure appropriately.
-To generate the database file, you can run one of the following commands in the project root directory:
-```shell
-# Generate compile_commands.json while compiling
-scons compiledb=yes
+## Repo Structure
+ 
+Grimoire uses a split source/build architecture:
+ 
+| Repo | Purpose |
+|------|---------|
+| [tag-system-src](https://github.com/jalejr/tag-system-src) | TagSystem source |
+| [attribute-system-src](https://github.com/jalejr/attribute-system-src) | AttributeSystem source |
+| [event-system-src](https://github.com/jalejr/event-system-src) | EventSystem source |
+| [effect-system-src](https://github.com/jalejr/effect-system-src) | EffectSystem source |
+| [ability-system-src](https://github.com/jalejr/ability-system-src) | AbilitySystem source |
+| **This repo** | Full stack build — compiles all systems into one GDExtension |
+ 
+Individual systems currently not available with only the tag system being an exception at the moment.
 
-# Generate compile_commands.json without compiling
-scons compiledb=yes compile_commands.json
-```
+Every system is dependent on the tag system and some refactoring is necessary at the moment to make systems truly separate
 
-## Usage - Actions
-
-This repository comes with continuous integration (CI) through a GitHub action that tests building the GDExtension.
-It triggers automatically for each pushed change. You can find and edit it in [builds.yml](.github/workflows/ci.yml).
-
-There is also a workflow ([make_build.yml](.github/workflows/make_build.yml)) that builds the GDExtension for all supported platforms that you can use to create releases.
-You can trigger this workflow manually from the `Actions` tab on GitHub.
-After it is complete, you can find the file `godot-cpp-template.zip` in the `Artifacts` section of the workflow run.
+---
+ 
+## License
+ 
+MIT
